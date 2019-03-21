@@ -13,7 +13,7 @@
         </commentGenerator>
         <!--数据库链接地址账号密码-->
         <jdbcConnection driverClass="com.mysql.jdbc.Driver"
-                        connectionURL="jdbc:mysql://192.166.65.174:3306/zzy"
+                        connectionURL="jdbc:mysql://192.166.65.174:3306/zzy1"
                         userId="root" password="123456">
         </jdbcConnection>
         <javaTypeResolver>
@@ -39,7 +39,7 @@
             <property name="enableSubPackages" value="false"/>
         </javaClientGenerator>
         <!--生成对应表及类名-->
-        <table tableName="t">
+        <table tableName="t" >
         </table>
 
     </context>

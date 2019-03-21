@@ -21,7 +21,6 @@ public class HelloServiceImpl implements HelloService {
 
     @Override
     public void delayBatchInsert(List<T> t) {
-        tMapper.delayInsert(t);
     }
 
     @Override

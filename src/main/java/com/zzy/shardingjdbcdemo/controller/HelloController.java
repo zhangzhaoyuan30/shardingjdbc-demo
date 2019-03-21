@@ -1,5 +1,7 @@
 package com.zzy.shardingjdbcdemo.controller;
 
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.zzy.shardingjdbcdemo.dao.TMapper;
 import com.zzy.shardingjdbcdemo.po.T;
 import com.zzy.shardingjdbcdemo.service.HelloService;
@@ -14,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 
 /**
@@ -33,13 +36,13 @@ public class HelloController {
 
 
     @RequestMapping("insert")
-    public Result hello1() {
-        T t = new T();
-        t.setA("aaa");
-        t.setB("bbb");
-        t.setC("ccc");
+    public Result insert() {
         List<T> tList = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
+            T t = new T();
+            t.setA("aaa");
+            t.setB("bbb");
+            t.setC((int) (Math.random() * 10));
             tList.add(t);
         }
         Instant time1 = Instant.now();
@@ -49,9 +52,34 @@ public class HelloController {
         return Result.success(between.toMillis());
     }
 
-    @RequestMapping("query")
-    public Result hello2() {
+    @RequestMapping("queryAll")
+    public Result queryAll() {
         return Result.success(tMapper.selectAll().size());
     }
+
+    @RequestMapping("queryById")
+    public Result query(Long id) {
+        return Result.success(tMapper.selectByPrimaryKey(id));
+    }
+
+    @RequestMapping("queryByPage")
+    public Result queryPage() {
+        PageHelper.startPage(2, 10);
+        List<T> ts = tMapper.selectAll();
+        return Result.success(new PageInfo<>(ts));
+    }
+
+    @RequestMapping("queryByOrder")
+    public Result queryByOrder() {
+        List<T> ts = tMapper.queryByOrder();
+        return Result.success(ts);
+    }
+
+    @RequestMapping("queryBetween")
+    public Result queryBetween(Long id1, Long id2) {
+        List<T> ts = tMapper.queryBetween(id1, id2);
+        return Result.success(ts);
+    }
+
 
 }

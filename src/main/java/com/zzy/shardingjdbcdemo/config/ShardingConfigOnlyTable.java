@@ -5,7 +5,9 @@ import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.zaxxer.hikari.HikariDataSource;
 import io.shardingsphere.api.algorithm.sharding.PreciseShardingValue;
+import io.shardingsphere.api.algorithm.sharding.RangeShardingValue;
 import io.shardingsphere.api.algorithm.sharding.standard.PreciseShardingAlgorithm;
+import io.shardingsphere.api.algorithm.sharding.standard.RangeShardingAlgorithm;
 import io.shardingsphere.api.config.ShardingRuleConfiguration;
 import io.shardingsphere.api.config.TableRuleConfiguration;
 import io.shardingsphere.api.config.strategy.StandardShardingStrategyConfiguration;
@@ -29,11 +31,11 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @auther: zhangzhaoyuan
  * @date: 2019/03/18
- * @description:
+ * @description: 数据分片配置（单数据源仅分表）
  */
 
-@Configuration
-public class ShardingJdbcConfig {
+//@Configuration
+public class ShardingConfigOnlyTable {
 
     @Value("${spring.datasource.url}")
     private String url;
@@ -46,7 +48,7 @@ public class ShardingJdbcConfig {
     @Value("${spring.datasource.hikari.maximum-pool-size}")
     private Integer maximumPoolSize;
 
-
+    //配置Hikari数据源
     private HikariDataSource dataSource() {
         HikariDataSource dataSource = new HikariDataSource();
         dataSource.setJdbcUrl(url);
@@ -58,45 +60,48 @@ public class ShardingJdbcConfig {
     }
 
     /**
-     * 配置datasource的数据源，使用druid作为数据源
+     * 配置datasource的数据源，使用Hikari作为数据源
      * Primary的注解作用是在多数据源的情况下，优先加载该Bean
      *
      * @return
      */
     @Bean
-    @Primary
     public DataSource buildDataSource() throws Exception {
         Map<String, DataSource> dataSourceMap = Maps.newHashMapWithExpectedSize(1);
         dataSourceMap.put("db0", dataSource());
+
         //生成数据库分表配置文件
-        ShardingRuleConfiguration shardingRuleConfiguration = new ShardingRuleConfiguration();
-        //添加device_channel_list对表规则
-        shardingRuleConfiguration.getTableRuleConfigs().add(tTableRuleConfiguration());
+        ShardingRuleConfiguration shardingRuleConfig = new ShardingRuleConfiguration();
+        //添加表规则
+        shardingRuleConfig.getTableRuleConfigs().add(createTableRuleConfigurationFactory(
+            "t", "db${0}.t_${0..1}", "id", "id"));
         //默认使用snowFlake算法实现分布式主键id增加
-        shardingRuleConfiguration.setDefaultKeyGenerator(new DefaultKeyGenerator());
+        shardingRuleConfig.setDefaultKeyGenerator(new DefaultKeyGenerator());
         Properties properties = new Properties();
-        return ShardingDataSourceFactory.createDataSource(dataSourceMap, shardingRuleConfiguration, new ConcurrentHashMap<>(), properties);
+        return ShardingDataSourceFactory.createDataSource(dataSourceMap, shardingRuleConfig, new ConcurrentHashMap<>(), properties);
     }
 
 
+    /**
+     * @param logicTableName  逻辑表名
+     * @param actualDataNodes 数据节点
+     * @param primaryKey      主键
+     * @param shardingColumn  分片列
+     * @return
+     */
     private TableRuleConfiguration createTableRuleConfigurationFactory(String logicTableName, String actualDataNodes,
-                                                                       String tableId) {
-        TableRuleConfiguration tableRuleConfiguration = new TableRuleConfiguration();
+                                                                       String primaryKey, String shardingColumn) {
+        TableRuleConfiguration tableRuleConfig = new TableRuleConfiguration();
         //逻辑表
-        tableRuleConfiguration.setLogicTable(logicTableName);
-        //具体节点
-        tableRuleConfiguration.setActualDataNodes(actualDataNodes);
-        //配置数据分页算法
-        tableRuleConfiguration.setTableShardingStrategyConfig(new StandardShardingStrategyConfiguration(tableId, new ShardingStandardAlgorithm()));
-        //分布式自增主键,snowFlake算法
-        tableRuleConfiguration.setKeyGeneratorColumnName(tableId);
-        return tableRuleConfiguration;
-    }
+        tableRuleConfig.setLogicTable(logicTableName);
+        //数据节点
+        tableRuleConfig.setActualDataNodes(actualDataNodes);
+        //表分片策略与分片算法
+        tableRuleConfig.setTableShardingStrategyConfig(new StandardShardingStrategyConfiguration(shardingColumn, new ShardingStandardAlgorithm()));
+        //主键列名称
+        tableRuleConfig.setKeyGeneratorColumnName(primaryKey);
 
-    private TableRuleConfiguration tTableRuleConfiguration() {
-        return createTableRuleConfigurationFactory("t",
-            "db${0}.t_${0..1}",
-            "id");
+        return tableRuleConfig;
     }
 
     public class ShardingStandardAlgorithm implements PreciseShardingAlgorithm<Long> {
