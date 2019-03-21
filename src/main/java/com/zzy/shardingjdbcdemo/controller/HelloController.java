@@ -9,6 +9,7 @@ import com.zzy.shardingjdbcdemo.util.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -79,6 +80,21 @@ public class HelloController {
     public Result queryBetween(Long id1, Long id2) {
         List<T> ts = tMapper.queryBetween(id1, id2);
         return Result.success(ts);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @RequestMapping("tranc")
+    public Result tranc(Long id1, Long id2) throws Exception {
+        T t1 = tMapper.selectByPrimaryKey(id1);
+        t1.setA("t111");
+        tMapper.updateByPrimaryKey(t1);
+        T t2 = tMapper.selectByPrimaryKey(id2);
+        t2.setA("t222");
+        tMapper.updateByPrimaryKey(t2);
+
+        if (true)
+            throw new Exception();
+        return Result.success();
     }
 
 
